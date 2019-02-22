@@ -301,19 +301,14 @@
             width: 4em;
         }
 
-        footer {
-            margin-top: 1em;
-            padding-top: 1em;
-            border-top: 1px solid #ccc;
-        }
-
         #logo {
-            float: left;
             width: 130px;
-            vertical-align: middle;
+            display: inline-block;
+            vertical-align: baseline;
         }
-        #copyright {
-            margin-left: 0.5em;
+        header h1 {
+            display: inline-block;
+            margin-left: 0.25em;
         }
 
         a.action {
@@ -333,6 +328,7 @@
 </head>
 <body onload="onLoad()">
     <header>
+        <a href="http://mitigator.ru"><img id="logo" src="img/logo.png"/></a>
         <h1>Traffic Calculator</h1>
     </header>
 
@@ -500,8 +496,6 @@
     </section>
 
     <footer>
-        <a href="http://mitigator.ru"><img id="logo" src="img/logo.png"/></a>
-        <span id="copyright">&copy; 2019 BIFIT &amp;&nbsp;mitigator.ru</span>
     </footer>
 </body>
 </html>
