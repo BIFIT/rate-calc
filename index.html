@@ -1,8 +1,9 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="author" content="Gleb Hohlov, Dmitry Kozlyuk (HTML version)">
-    <meta name="copyright"content="BIFIT">
+    <meta name="copyright" content="BIFIT">
     <meta name="description" content="Link bandwidth and traffic rate calculator">
     <title>Bandwidth Calculator</title>
     <script>
@@ -128,7 +129,8 @@
             updatePermalink();
         }
 
-        function getLinkPps(link_speed) {
+        function getLinkPps(gbe) {
+            var link_speed = gbe * 1000 * 1000 * 1000;
             return {
                 'max': link_speed / bits(min_total_wo_vlan),
                 'max_vlan': link_speed / bits(max_total_vlan),
@@ -171,8 +173,7 @@
                 };
 
                 var gbe = gbes[i];
-                var link_speed = gbe * 1000 * 1000 * 1000;
-                var pps = getLinkPps(link_speed);
+                var pps = getLinkPps(gbe);
 
                 add(gbe);
                 add(pps['max'], 2);
@@ -194,8 +195,7 @@
                 document.getElementById(cellID).innerText = pps.toFixed(2);
             }
 
-            var link_speed = gbe * 1000 * 1000 * 1000;
-            var pps = getLinkPps(link_speed);
+            var pps = getLinkPps(gbe);
             setLinkPps('link_pps_max', pps['max']);
             setLinkPps('link_pps_max_vlan', pps['max_vlan']);
             setLinkPps('link_pps_min', pps['min']);
@@ -334,13 +334,13 @@
                 </thead>
                 <tbody id="sizes">
                 <tr id="size_framing">
-                    <td>L1 framing (preamble + SOF + IPG)</td>
+                    <td>L1 framing (preamble + <abbr title="Start of Frame">SOF</abbr> + <abbr title="Inter-Packet Gap">IPG</abbr>)</td>
                 </tr>
                 <tr id="size_l2_header">
                     <td>L2 MAC header</td>
                 </tr>
                 <tr id="size_l2_fcs">
-                    <td>L2 FCS</td>
+                    <td>L2 <abbr title="Frame Check Sequence">FCS</abbr></td>
                 </tr>
                 <tr id="size_l2_vlan">
                     <td>L2 VLAN</td>
@@ -386,13 +386,13 @@
                 </thead>
                 <tbody id="link_speeds">
                 <tr><td class="split"></td></tr>
-                <td>
-                    <input type="number" min="0" value="20" id="input_gbe" oninput="updateLinkSpeed()"/>
-                </td>
-                <td id="link_pps_max"></td>
-                <td id="link_pps_max_vlan"></td>
-                <td id="link_pps_min"></td>
-                <td id="link_pps_min_vlan"></td>
+                <tr>
+                    <td><input type="number" min="0" value="20" id="input_gbe" oninput="updateLinkSpeed()"/></td>
+                    <td id="link_pps_max"></td>
+                    <td id="link_pps_max_vlan"></td>
+                    <td id="link_pps_min"></td>
+                    <td id="link_pps_min_vlan"></td>
+                </tr>
                 </tbody>
             </table>
         </div>
@@ -460,7 +460,7 @@
                     <td id="bin_pps_l2"></td>
                 </tr>
                 <tr>
-                    <td>L2 w VLAN</td>
+                    <td>L2 w/VLAN</td>
                     <td id="pdu_l2_vlan"></td>
                     <td id="dec_pps_l2_vlan"></td>
                     <td id="bin_pps_l2_vlan"></td>
@@ -472,7 +472,7 @@
                     <td id="bin_pps_l1"></td>
                 </tr>
                 <tr>
-                    <td>L1 w VLAN</td>
+                    <td>L1 w/VLAN</td>
                     <td id="pdu_l1_vlan"></td>
                     <td id="dec_pps_l1_vlan"></td>
                     <td id="bin_pps_l1_vlan"></td>
