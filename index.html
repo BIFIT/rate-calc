@@ -5,6 +5,9 @@
     <meta name="author" content="Gleb Hohlov, Dmitry Kozlyuk (HTML version)">
     <meta name="copyright" content="BIFIT">
     <meta name="description" content="Link bandwidth and traffic rate calculator">
+    <link rel="icon" sizes="192x192" href="/img/favicon/192.png">
+    <link rel="icon" sizes="32x32" href="/img/favicon/32.png">
+    <link rel="icon" sizes="16x16" href="/img/favicon/16.png">
     <title>Bandwidth Calculator</title>
     <script>
         <!--
@@ -298,6 +301,21 @@
             width: 4em;
         }
 
+        footer {
+            margin-top: 1em;
+            padding-top: 1em;
+            border-top: 1px solid #ccc;
+        }
+
+        #logo {
+            float: left;
+            width: 130px;
+            vertical-align: middle;
+        }
+        #copyright {
+            margin-left: 0.5em;
+        }
+
         a.action {
             text-decoration: none;
         }
@@ -480,5 +498,10 @@
             </tbody>
         </table>
     </section>
+
+    <footer>
+        <a href="http://mitigator.ru"><img id="logo" src="img/logo.png"/></a>
+        <span id="copyright">&copy; 2019 BIFIT &amp;&nbsp;mitigator.ru</span>
+    </footer>
 </body>
 </html>
