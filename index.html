@@ -33,7 +33,7 @@
         function getPDUSizes(payload, header) {
             var l3 = header + payload;
             var l2_wo_fcs_wo_padding = ether + l3;
-            var l2_wo_fcs = Math.min(l3, 46) + ether;
+            var l2_wo_fcs = Math.max(l3, 46) + ether;
             var l2_wo_fcs_vlan = l2_wo_fcs + vlan;
             var l2 = l2_wo_fcs + fcs;
             var l2_vlan = l2 + vlan;
