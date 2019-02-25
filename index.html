@@ -1,510 +1,618 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="author" content="Gleb Hohlov, Dmitry Kozlyuk (HTML version)">
-    <meta name="copyright" content="BIFIT">
-    <meta name="description" content="Link bandwidth and traffic rate calculator">
-    <link rel="icon" sizes="192x192" href="/img/favicon/192.png">
-    <link rel="icon" sizes="32x32" href="/img/favicon/32.png">
-    <link rel="icon" sizes="16x16" href="/img/favicon/16.png">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="author" content="Gleb Hohlov, Dmitry Kozlyuk (HTML version)" />
+    <meta name="copyright" content="BIFIT" />
+    <meta
+      name="description"
+      content="Link bandwidth and traffic rate calculator"
+    />
+    <link rel="icon" sizes="192x192" href="/img/favicon/192.png" />
+    <link rel="icon" sizes="32x32" href="/img/favicon/32.png" />
+    <link rel="icon" sizes="16x16" href="/img/favicon/16.png" />
+    <link rel="stylesheet" href="./normalize.min.css" />
     <title>Bandwidth Calculator</title>
     <script>
-        <!--
+      var preamble = 7;
+      var sof = 1; // Start Of Frame delimiter
+      var ipg = 12; // Inter-Packet Gap
+      var ether = 6 + 6 + 2;
+      var vlan = 4;
+      var fcs = 4;
+      var min_payload = 64 - ether - fcs;
+      var max_payload = 1500;
 
-        var preamble = 7;
-        var sof = 1;      // Start Of Frame delimiter
-        var ipg = 12;     // Inter-Packet Gap
-        var ether = 6 + 6 + 2;
-        var vlan = 4;
-        var fcs = 4;
-        var min_payload = 64 - ether - fcs;
-        var max_payload = 1500;
+      function bits(bytes) {
+        return bytes * 8;
+      }
 
-        function bits(bytes) {
-            return bytes * 8;
+      function total(payload) {
+        return preamble + sof + ether + payload + fcs + ipg;
+      }
+
+      var min_total_wo_vlan = total(min_payload);
+      var min_total_vlan = min_total_wo_vlan + vlan;
+      var max_total_wo_vlan = total(max_payload);
+      var max_total_vlan = max_total_wo_vlan + vlan;
+
+      function getPDUSizes(payload, header) {
+        var l3 = header + payload;
+        var l2_wo_fcs_wo_padding = ether + l3;
+        var l2_wo_fcs = Math.max(l3, 46) + ether;
+        var l2_wo_fcs_vlan = l2_wo_fcs + vlan;
+        var l2 = l2_wo_fcs + fcs;
+        var l2_vlan = l2 + vlan;
+        var l1 = preamble + sof + l2 + ipg;
+        var l1_vlan = l1 + vlan;
+
+        return {
+          l3: l3,
+          l2_wo_fcs_wo_padding: l2_wo_fcs_wo_padding,
+          l2_wo_fcs: l2_wo_fcs,
+          l2_wo_fcs_vlan: l2_wo_fcs_vlan,
+          l2: l2,
+          l2_vlan: l2_vlan,
+          l1: l1,
+          l1_vlan: l1_vlan
+        };
+      }
+
+      function getInt(id) {
+        return parseInt(document.getElementById(id).value);
+      }
+
+      function getFloat(id) {
+        return parseFloat(document.getElementById(id).value);
+      }
+
+      function isInvalid(value) {
+        return Number.isNaN(value);
+      }
+
+      function makePermalink() {
+        function get(id) {
+          return document.getElementById(id).value;
         }
 
-        function total(payload) {
-            return preamble + sof + ether + payload + fcs + ipg;
+        var baseURL = window.location.href.split("#")[0];
+        return (
+          baseURL +
+          "#gbe=" +
+          get("input_gbe") +
+          "&payload=" +
+          get("input_payload") +
+          "&rate=" +
+          get("input_rate") +
+          "&header=" +
+          get("input_header")
+        );
+      }
+
+      function updatePermalink() {
+        document.getElementById("permalink").href = makePermalink();
+      }
+
+      function copyPermalink() {
+        // Yes, really.
+        function copyToClipboard(text) {
+          var el = document.createElement("textarea");
+          el.value = text;
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand("copy");
+          document.body.removeChild(el);
         }
 
-        var min_total_wo_vlan = total(min_payload);
-        var min_total_vlan = min_total_wo_vlan + vlan;
-        var max_total_wo_vlan = total(max_payload);
-        var max_total_vlan = max_total_wo_vlan + vlan;
+        var url = makePermalink();
 
-        function getPDUSizes(payload, header) {
-            var l3 = header + payload;
-            var l2_wo_fcs_wo_padding = ether + l3;
-            var l2_wo_fcs = Math.max(l3, 46) + ether;
-            var l2_wo_fcs_vlan = l2_wo_fcs + vlan;
-            var l2 = l2_wo_fcs + fcs;
-            var l2_vlan = l2 + vlan;
-            var l1 = preamble + sof + l2 + ipg;
-            var l1_vlan = l1 + vlan;
+        document.location.href = url;
+        copyToClipboard(url);
+      }
 
-            return {
-                'l3': l3,
-                'l2_wo_fcs_wo_padding': l2_wo_fcs_wo_padding,
-                'l2_wo_fcs': l2_wo_fcs,
-                'l2_wo_fcs_vlan': l2_wo_fcs_vlan,
-                'l2': l2,
-                'l2_vlan': l2_vlan,
-                'l1': l1,
-                'l1_vlan': l1_vlan,
-            };
+      function updateDisplayRate() {
+        function setSize(id, value) {
+          document.getElementById(id).innerText = value;
         }
 
-        function getInt(id) {
-            return parseInt(document.getElementById(id).value);
+        function setPps(id, value) {
+          var text = value.toFixed(9);
+          var bound = text.indexOf(".") + 3;
+          document.getElementById(id).innerHTML = `${text.substring(
+            0,
+            bound
+          )}<span class="precise">${text.substring(bound)}</span>`;
         }
 
-        function getFloat(id) {
-            return parseFloat(document.getElementById(id).value);
+        var payload = getInt("input_payload");
+        var pps = getFloat("input_rate");
+        var header = getInt("input_header");
+
+        if (isInvalid(payload) || isInvalid(pps) || isInvalid(header)) {
+          return;
         }
 
-        function isInvalid(value) {
-            return Number.isNaN(value);
+        var pduSizes = getPDUSizes(payload, header);
+
+        for (var pdu in pduSizes) {
+          var size = pduSizes[pdu];
+          var bps = bits(size * pps);
+          setSize("pdu_" + pdu, size, 0);
+          setPps("dec_pps_" + pdu, bps / 1000000000);
+          setPps("bin_pps_" + pdu, bps / 1073741824);
         }
 
-        function makePermalink() {
-            function get(id) {
-                return document.getElementById(id).value;
-            }
+        updatePermalink();
+      }
 
-            var baseURL = window.location.href.split('#')[0];
-            return baseURL + '#gbe=' + get('input_gbe') + '&payload=' + get('input_payload') +
-                '&rate=' + get('input_rate') + '&header=' + get('input_header');
+      function getLinkPps(gbe) {
+        var link_speed = gbe * 1000 * 1000 * 1000;
+        return {
+          max: link_speed / bits(min_total_wo_vlan),
+          max_vlan: link_speed / bits(max_total_vlan),
+          min: link_speed / bits(max_total_wo_vlan),
+          min_vlan: link_speed / bits(max_total_vlan)
+        };
+      }
+
+      function fillReference() {
+        function addSize(rowID, bytes) {
+          var row = document.getElementById(rowID);
+          var values = [bytes, bits(bytes)];
+          for (var i = 0; i < values.length; i++) {
+            var cell = document.createElement("td");
+            cell.innerText = values[i];
+            row.appendChild(cell);
+          }
         }
 
-        function updatePermalink() {
-            document.getElementById('permalink').href = makePermalink();
+        addSize("size_framing", preamble + sof + ipg);
+        addSize("size_l2_header", ether);
+        addSize("size_l2_fcs", fcs);
+        addSize("size_l2_vlan", vlan);
+        addSize("size_payload_min", min_payload);
+        addSize("size_payload_max", max_payload);
+        addSize("size_total_min", min_total_wo_vlan);
+        addSize("size_total_min_vlan", min_total_vlan);
+        addSize("size_total_max", max_total_wo_vlan);
+        addSize("size_total_max_vlan", max_total_vlan);
+
+        var table = document.getElementById("link_speeds");
+        var gbes = [40, 10, 1];
+        for (var i = 0; i < gbes.length; i++) {
+          var row = document.createElement("tr");
+          var add = function(value, digits) {
+            var cell = document.createElement("td");
+            cell.innerText = value.toFixed(digits);
+            cell.setAttribute("class", "number");
+            row.appendChild(cell);
+          };
+
+          var gbe = gbes[i];
+          var pps = getLinkPps(gbe);
+
+          add(gbe);
+          add(pps["max"], 2);
+          add(pps["max_vlan"], 2);
+          add(pps["min"], 2);
+          add(pps["min_vlan"], 2);
+
+          table.prepend(row);
+        }
+      }
+
+      function updateLinkSpeed() {
+        var gbe = getFloat("input_gbe");
+        if (isInvalid(gbe)) {
+          return;
         }
 
-        function copyPermalink() {
-            // Yes, really.
-            function copyToClipboard(text) {
-                var el = document.createElement('textarea');
-                el.value = text;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-            }
-
-            var url = makePermalink();
-
-            document.location.href = url;
-            copyToClipboard(url);
+        function setLinkPps(cellID, pps) {
+          document.getElementById(cellID).innerText = pps.toFixed(2);
         }
 
-        function updateDisplayRate() {
-            function setSize(id, value) {
-                document.getElementById(id).innerText = value;
-            }
+        var pps = getLinkPps(gbe);
+        setLinkPps("link_pps_max", pps["max"]);
+        setLinkPps("link_pps_max_vlan", pps["max_vlan"]);
+        setLinkPps("link_pps_min", pps["min"]);
+        setLinkPps("link_pps_min_vlan", pps["min_vlan"]);
 
-            function setPps(id, value) {
-                var text = value.toFixed(9);
-                var bound = text.indexOf('.') + 3;
-                document.getElementById(id).innerHTML =
-                    `${text.substring(0, bound)}<span class="precise">${text.substring(bound)}</span>`;
-            }
+        updatePermalink();
+      }
 
-            var payload = getInt('input_payload');
-            var pps = getFloat('input_rate');
-            var header = getInt('input_header');
-
-            if (isInvalid(payload) || isInvalid(pps) || isInvalid(header)) {
-                return;
-            }
-
-            var pduSizes = getPDUSizes(payload, header);
-
-            for (var pdu in pduSizes) {
-                var size = pduSizes[pdu];
-                var bps = bits(size * pps);
-                setSize('pdu_' + pdu, size, 0);
-                setPps('dec_pps_' + pdu, bps / 1000000000);
-                setPps('bin_pps_' + pdu, bps / 1073741824);
-            }
-
-            updatePermalink();
+      function readParams() {
+        var parts = document.location.href.split("#");
+        if (parts.length !== 2) {
+          return;
         }
 
-        function getLinkPps(gbe) {
-            var link_speed = gbe * 1000 * 1000 * 1000;
-            return {
-                'max': link_speed / bits(min_total_wo_vlan),
-                'max_vlan': link_speed / bits(max_total_vlan),
-                'min': link_speed / bits(max_total_wo_vlan),
-                'min_vlan': link_speed / bits(max_total_vlan),
-            };
+        var fragments = parts[1].split("&");
+        for (var i = 0; i < fragments.length; i++) {
+          var parts = fragments[i].split("=");
+          if (parts.length !== 2) {
+            continue;
+          }
+
+          switch (parts[0]) {
+            case "gbe":
+              var gbe = parseFloat(parts[1]);
+              if (isInvalid(gbe)) {
+                continue;
+              }
+              document.getElementById("input_gbe").value = gbe;
+              break;
+
+            case "payload":
+              var payload = parseInt(parts[1]);
+              if (isInvalid(payload)) {
+                continue;
+              }
+              document.getElementById("input_payload").value = payload;
+              break;
+
+            case "rate":
+              var rate = parseFloat(parts[1]);
+              if (isInvalid(rate)) {
+                continue;
+              }
+              document.getElementById("input_rate").value = rate;
+              break;
+
+            case "header":
+              var header = parseInt(parts[1]);
+              if (isInvalid(header)) {
+                continue;
+              }
+              document.getElementById("input_header").value = header;
+              break;
+          }
         }
+      }
 
-        function fillReference() {
-            function addSize(rowID, bytes) {
-                var row = document.getElementById(rowID);
-                var values = [bytes, bits(bytes)];
-                for (var i = 0; i < values.length; i++) {
-                    var cell = document.createElement('td');
-                    cell.innerText = values[i];
-                    row.appendChild(cell);
-                }
-            }
-
-            addSize('size_framing', preamble + sof + ipg);
-            addSize('size_l2_header', ether);
-            addSize('size_l2_fcs', fcs);
-            addSize('size_l2_vlan', vlan);
-            addSize('size_payload_min', min_payload);
-            addSize('size_payload_max', max_payload);
-            addSize('size_total_min', min_total_wo_vlan);
-            addSize('size_total_min_vlan', min_total_vlan);
-            addSize('size_total_max', max_total_wo_vlan);
-            addSize('size_total_max_vlan', max_total_vlan);
-
-            var table = document.getElementById('link_speeds');
-            var gbes = [40, 10, 1];
-            for (var i = 0; i < gbes.length; i++) {
-                var row = document.createElement('tr');
-                var add = function(value, digits) {
-                    var cell  = document.createElement('td');
-                    cell.innerText = value.toFixed(digits);
-                    cell.setAttribute('class', 'number');
-                    row.appendChild(cell);
-                };
-
-                var gbe = gbes[i];
-                var pps = getLinkPps(gbe);
-
-                add(gbe);
-                add(pps['max'], 2);
-                add(pps['max_vlan'], 2);
-                add(pps['min'], 2);
-                add(pps['min_vlan'], 2);
-
-                table.prepend(row);
-            }
-        }
-
-        function updateLinkSpeed() {
-            var gbe = getFloat('input_gbe');
-            if (isInvalid(gbe)) {
-                return;
-            }
-
-            function setLinkPps(cellID, pps) {
-                document.getElementById(cellID).innerText = pps.toFixed(2);
-            }
-
-            var pps = getLinkPps(gbe);
-            setLinkPps('link_pps_max', pps['max']);
-            setLinkPps('link_pps_max_vlan', pps['max_vlan']);
-            setLinkPps('link_pps_min', pps['min']);
-            setLinkPps('link_pps_min_vlan', pps['min_vlan']);
-
-            updatePermalink();
-        }
-
-        function readParams() {
-            var parts = document.location.href.split('#')
-            if (parts.length !== 2) {
-                return;
-            }
-
-            var fragments = parts[1].split('&');
-            for (var i = 0; i < fragments.length; i++) {
-                var parts = fragments[i].split('=');
-                if (parts.length !== 2) {
-                    continue;
-                }
-
-                switch (parts[0]) {
-                case 'gbe':
-                    var gbe = parseFloat(parts[1]);
-                    if (isInvalid(gbe)) {
-                        continue;
-                    }
-                    document.getElementById('input_gbe').value = gbe;
-                    break;
-
-                case 'payload':
-                    var payload = parseInt(parts[1]);
-                    if (isInvalid(payload)) {
-                        continue;
-                    }
-                    document.getElementById('input_payload').value = payload;
-                    break;
-
-                case 'rate':
-                    var rate = parseFloat(parts[1]);
-                    if (isInvalid(rate)) {
-                        continue;
-                    }
-                    document.getElementById('input_rate').value = rate;
-                    break;
-
-                case 'header':
-                    var header = parseInt(parts[1]);
-                    if (isInvalid(header)) {
-                        continue;
-                    }
-                    document.getElementById('input_header').value = header;
-                    break;
-                }
-            }
-        }
-
-        function onLoad() {
-            fillReference();
-            readParams();
-            updatePermalink();
-            updateLinkSpeed();
-            updateDisplayRate();
-        }
-        -->
+      function onLoad() {
+        fillReference();
+        readParams();
+        updatePermalink();
+        updateLinkSpeed();
+        updateDisplayRate();
+      }
     </script>
     <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-70427024-2"></script>
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=UA-70427024-2"
+    ></script>
     <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
 
-        gtag('config', 'UA-70427024-2');
+      gtag("config", "UA-70427024-2");
     </script>
 
     <style>
-        .data {
-            border-spacing: 0;
-            border-collapse: collapse;
-            empty-cells: hide;
-        }
-        .data td, th {
-            border: 1px solid gray;
-            padding: 0.2em 0.4em;
-            empty-cells: hide;
-        }
-        .data th {
-            background-color: #eee;
-        }
-        .data td:nth-child(n + 2), .number {
-            text-align: right;
-        }
-        .data td.split {
-            border: none;
-        }
-        .precise {
-            color: #ccc;
-        }
-        .reference {
-            display: inline-block;
-            vertical-align: top;
-            margin-right: 1em;
-        }
-        .reference h1 {
-            font-size: 16pt;
-        }
-        input#input_gbe {
-            width: 4em;
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+          "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        color: #333;
+      }
 
-        #logo {
-            width: 130px;
-            display: inline-block;
-            vertical-align: baseline;
-        }
-        header h1 {
-            display: inline-block;
-            margin-left: 0.25em;
-        }
+      .container {
+        max-width: 1170px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0 1rem;
+      }
 
-        a.action {
-            text-decoration: none;
-        }
-        a.action:visited {
-            color: blue;
-        }
+      .table {
+        border: 1px solid #dee2e6;
+        border-spacing: 0;
+        border-collapse: collapse;
+        width: 100%;
+      }
 
-        #dec_pps_l2_wo_fcs {
-            background-color: #fce94f;
-        }
-        #dec_pps_l2 {
-            background-color: #729fcf;
-        }
+      .table td,
+      .table th {
+        padding: 0.75rem;
+        vertical-align: middle;
+        border: 1px solid #dee2e6;
+      }
+
+      input {
+        display: block;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
+      .precise {
+        color: #ccc;
+      }
+      .row {
+        display: flex;
+        margin-left: -1rem;
+        margin-right: -1rem;
+      }
+      .col {
+        flex-grow: 1;
+        padding: 0 1rem;
+      }
+      input#input_gbe {
+        width: 4em;
+      }
+      #logo {
+        width: 250px;
+        display: inline-block;
+        vertical-align: baseline;
+      }
+      .header {
+        padding: 1.5rem 0;
+      }
+      .main {
+        padding: 1.5rem 0;
+      }
+      header h1 {
+        display: inline-block;
+        margin-left: 0.25em;
+      }
+
+      a.action {
+        text-decoration: none;
+      }
+      a.action:visited {
+        color: blue;
+      }
+
+      #dec_pps_l2_wo_fcs {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      #dec_pps_l2_wo_fcs .precise {
+        color: rgba(133, 100, 4, 0.3);
+      }
+      #dec_pps_l2 {
+        background-color: #b8daff;
+        color: #004085;
+      }
+      #dec_pps_l2 .precise {
+        color: rgba(0, 64, 133, 0.3);
+      }
     </style>
-</head>
-<body onload="onLoad()">
-    <header>
-        <a href="http://mitigator.ru"><img id="logo" src="img/logo.png"/></a>
-        <h1>Traffic Calculator</h1>
+  </head>
+  <body onload="onLoad()">
+    <header class="header">
+      <div class="container">
+        <a href="http://mitigator.ru" target="_blank"><img id="logo" src="img/logo.png"/></a>
+      </div>
     </header>
 
-    <a href="#" id="permalink">Link to calculation</a>
-    <span>(<a href="#" class="action" onclick="copyPermalink(); return false;">copy</a>)</span>
-
-    <section>
-        <div class="reference">
-            <h2>Ethernet Reference</h2>
-            <table class="data">
+    <div class="main">
+      <div class="container">
+        <section>
+          <p>
+            <a href="#" id="permalink">Link to calculation</a>
+            <span
+              >(<a
+                href="#"
+                class="action"
+                onclick="copyPermalink(); return false;"
+                >copy</a
+              >)</span
+            >
+          </p>
+        </section>
+        <section>
+          <div class="row">
+            <div class="col">
+              <h2>Ethernet Reference</h2>
+              <table class="table">
                 <thead>
-                <tr>
+                  <tr>
                     <th></th>
                     <th>bytes</th>
                     <th>bits</th>
-                </tr>
+                  </tr>
                 </thead>
                 <tbody id="sizes">
-                <tr id="size_framing">
-                    <td>L1 framing (preamble + <abbr title="Start of Frame">SOF</abbr> + <abbr title="Inter-Packet Gap">IPG</abbr>)</td>
-                </tr>
-                <tr id="size_l2_header">
+                  <tr id="size_framing">
+                    <td>
+                      L1 framing (preamble +
+                      <abbr title="Start of Frame">SOF</abbr> +
+                      <abbr title="Inter-Packet Gap">IPG</abbr>)
+                    </td>
+                  </tr>
+                  <tr id="size_l2_header">
                     <td>L2 MAC header</td>
-                </tr>
-                <tr id="size_l2_fcs">
+                  </tr>
+                  <tr id="size_l2_fcs">
                     <td>L2 <abbr title="Frame Check Sequence">FCS</abbr></td>
-                </tr>
-                <tr id="size_l2_vlan">
+                  </tr>
+                  <tr id="size_l2_vlan">
                     <td>L2 VLAN</td>
-                </tr>
-                <tr id="size_payload_min">
+                  </tr>
+                  <tr id="size_payload_min">
                     <td>Payload (min)</td>
-                </tr>
-                <tr id="size_payload_max">
+                  </tr>
+                  <tr id="size_payload_max">
                     <td>Payload (max)</td>
-                </tr>
-                <tr><td class="split"></td></tr>
-                <tr id="size_total_min">
+                  </tr>
+                  <tr id="size_total_min">
                     <td>Total w/o payload w/o VLAN</td>
-                </tr>
-                <tr id="size_total_min_vlan">
+                  </tr>
+                  <tr id="size_total_min_vlan">
                     <td>Total w/o payload w/VLAN</td>
-                </tr>
-                <tr id="size_total_max">
+                  </tr>
+                  <tr id="size_total_max">
                     <td>Total w/max payload w/o VLAN</td>
-                </tr>
-                <tr id="size_total_max_vlan">
+                  </tr>
+                  <tr id="size_total_max_vlan">
                     <td>Total w/max payload w/VLAN</td>
-                </tr>
+                  </tr>
                 </tbody>
-            </table>
-        </div>
-
-        <div class="reference">
-            <h2>Link Bandwidth</h2>
-            <table class="data">
+              </table>
+            </div>
+            <div class="col">
+              <h2>Link Bandwidth</h2>
+              <table class="table">
                 <thead>
-                    <tr>
-                        <th rowspan="2">GbE</th>
-                        <th colspan="2">Max. PPS</th>
-                        <th colspan="2">Min. PPS</th>
-                    </tr>
-                    <tr>
-                        <th>w/o VLAN</th>
-                        <th>VLAN</th>
-                        <th>w/o VLAN</th>
-                        <th>VLAN</th>
-                    </tr>
+                  <tr>
+                    <th rowspan="2">GbE</th>
+                    <th colspan="2">Max. PPS</th>
+                    <th colspan="2">Min. PPS</th>
+                  </tr>
+                  <tr>
+                    <th>w/o VLAN</th>
+                    <th>VLAN</th>
+                    <th>w/o VLAN</th>
+                    <th>VLAN</th>
+                  </tr>
                 </thead>
                 <tbody id="link_speeds">
-                <tr><td class="split"></td></tr>
-                <tr>
-                    <td><input type="number" min="0" value="20" id="input_gbe" oninput="updateLinkSpeed()"/></td>
+                  <tr>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        value="20"
+                        id="input_gbe"
+                        oninput="updateLinkSpeed()"
+                      />
+                    </td>
                     <td id="link_pps_max"></td>
                     <td id="link_pps_max_vlan"></td>
                     <td id="link_pps_min"></td>
                     <td id="link_pps_min_vlan"></td>
-                </tr>
+                  </tr>
                 </tbody>
-            </table>
-        </div>
-    </section>
+              </table>
+            </div>
+          </div>
+        </section>
 
-    <section>
-        <header>
+        <section>
+          <header>
             <h2>Display Rate</h2>
-        </header>
-        <table>
-            <tr>
-                <td>IP payload (bytes):</td>
-                <td><input type="number" min="0" step="1" value="20" id="input_payload" oninput="updateDisplayRate()"/></td>
-            </tr>
-            <tr>
-                <td>Speed (pps):</td>
-                <td><input type="number" min="0" value="14880952.381" id="input_rate" oninput="updateDisplayRate()"/></td>
-            </tr>
-            <tr>
-                <td>L3 header (bytes):</td>
-                <td><input type="number" min="0" step="4" value="20" id="input_header" oninput="updateDisplayRate()"/></td>
-            </tr>
-        </table>
-        <table class="data">
-            <thead>
+          </header>
+          <div class="row">
+            <div class="col">
+              <table class="table">
                 <tr>
-                    <th rowspan="2"></th>
-                    <th rowspan="2" class="number">PDU size<br/>(bytes)</th>
-                    <th colspan="2">Gbps Multiplier</th>
+                  <td>IP payload (bytes):</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value="20"
+                      id="input_payload"
+                      oninput="updateDisplayRate()"
+                    />
+                  </td>
                 </tr>
                 <tr>
+                  <td>Speed (pps):</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      value="14880952.381"
+                      id="input_rate"
+                      oninput="updateDisplayRate()"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td>L3 header (bytes):</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="4"
+                      value="20"
+                      id="input_header"
+                      oninput="updateDisplayRate()"
+                    />
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="col">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th rowspan="2"></th>
+                    <th rowspan="2" class="number">PDU size<br />(bytes)</th>
+                    <th colspan="2">Gbps Multiplier</th>
+                  </tr>
+                  <tr>
                     <th class="number">10<sup>9</sup></th>
                     <th class="number">2<sup>30</sup></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
                     <td>L3</td>
                     <td id="pdu_l3"></td>
                     <td id="dec_pps_l3"></td>
                     <td id="bin_pps_l3"></td>
-                </tr>
-                <tr>
+                  </tr>
+                  <tr>
                     <td>L2 w/o FCS w/o padding</td>
                     <td id="pdu_l2_wo_fcs_wo_padding"></td>
                     <td id="dec_pps_l2_wo_fcs_wo_padding"></td>
                     <td id="bin_pps_l2_wo_fcs_wo_padding"></td>
-                </tr>
-                <tr>
+                  </tr>
+                  <tr>
                     <td>L2 w/o FCS</td>
                     <td id="pdu_l2_wo_fcs"></td>
                     <td id="dec_pps_l2_wo_fcs"></td>
                     <td id="bin_pps_l2_wo_fcs"></td>
-                </tr>
-                <tr>
+                  </tr>
+                  <tr>
                     <td>L2 w/o FCS w VLAN</td>
                     <td id="pdu_l2_wo_fcs_vlan"></td>
                     <td id="dec_pps_l2_wo_fcs_vlan"></td>
                     <td id="bin_pps_l2_wo_fcs_vlan"></td>
-                </tr>
-                <tr>
+                  </tr>
+                  <tr>
                     <td>L2</td>
                     <td id="pdu_l2"></td>
                     <td id="dec_pps_l2"></td>
                     <td id="bin_pps_l2"></td>
-                </tr>
-                <tr>
+                  </tr>
+                  <tr>
                     <td>L2 w/VLAN</td>
                     <td id="pdu_l2_vlan"></td>
                     <td id="dec_pps_l2_vlan"></td>
                     <td id="bin_pps_l2_vlan"></td>
-                </tr>
-                <tr>
+                  </tr>
+                  <tr>
                     <td>L1</td>
                     <td id="pdu_l1"></td>
                     <td id="dec_pps_l1"></td>
                     <td id="bin_pps_l1"></td>
-                </tr>
-                <tr>
+                  </tr>
+                  <tr>
                     <td>L1 w/VLAN</td>
                     <td id="pdu_l1_vlan"></td>
                     <td id="dec_pps_l1_vlan"></td>
                     <td id="bin_pps_l1_vlan"></td>
-                </tr>
-            </tbody>
-        </table>
-    </section>
-
-    <footer>
-    </footer>
-</body>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
 </html>
