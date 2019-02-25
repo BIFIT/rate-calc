@@ -161,6 +161,7 @@
           var values = [bytes, bits(bytes)];
           for (var i = 0; i < values.length; i++) {
             var cell = document.createElement("td");
+            cell.setAttribute("class", "number");
             cell.innerText = values[i];
             row.appendChild(cell);
           }
@@ -327,6 +328,8 @@
         font-size: 1rem;
         font-weight: 400;
         line-height: 1.5;
+        width: 100%;
+        box-sizing: border-box;
         color: #495057;
         background-color: #fff;
         background-clip: padding-box;
@@ -337,6 +340,9 @@
       .precise {
         color: #ccc;
       }
+      .number {
+        text-align: right;
+      }
       .row {
         display: flex;
         margin-left: -1rem;
@@ -345,9 +351,6 @@
       .col {
         flex-grow: 1;
         padding: 0 1rem;
-      }
-      input#input_gbe {
-        width: 4em;
       }
       #logo {
         width: 250px;
@@ -487,10 +490,10 @@
                         oninput="updateLinkSpeed()"
                       />
                     </td>
-                    <td id="link_pps_max"></td>
-                    <td id="link_pps_max_vlan"></td>
-                    <td id="link_pps_min"></td>
-                    <td id="link_pps_min_vlan"></td>
+                    <td class="number" id="link_pps_max"></td>
+                    <td class="number" id="link_pps_max_vlan"></td>
+                    <td class="number" id="link_pps_min"></td>
+                    <td class="number" id="link_pps_min_vlan"></td>
                   </tr>
                 </tbody>
               </table>
@@ -550,62 +553,62 @@
                 <thead>
                   <tr>
                     <th rowspan="2"></th>
-                    <th rowspan="2" class="number">PDU size<br />(bytes)</th>
+                    <th rowspan="2">PDU size<br />(bytes)</th>
                     <th colspan="2">Gbps Multiplier</th>
                   </tr>
                   <tr>
-                    <th class="number">10<sup>9</sup></th>
-                    <th class="number">2<sup>30</sup></th>
+                    <th>10<sup>9</sup></th>
+                    <th>2<sup>30</sup></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>L3</td>
-                    <td id="pdu_l3"></td>
-                    <td id="dec_pps_l3"></td>
-                    <td id="bin_pps_l3"></td>
+                    <td class="number" id="pdu_l3"></td>
+                    <td class="number" id="dec_pps_l3"></td>
+                    <td class="number" id="bin_pps_l3"></td>
                   </tr>
                   <tr>
                     <td>L2 w/o FCS w/o padding</td>
-                    <td id="pdu_l2_wo_fcs_wo_padding"></td>
-                    <td id="dec_pps_l2_wo_fcs_wo_padding"></td>
-                    <td id="bin_pps_l2_wo_fcs_wo_padding"></td>
+                    <td class="number" id="pdu_l2_wo_fcs_wo_padding"></td>
+                    <td class="number" id="dec_pps_l2_wo_fcs_wo_padding"></td>
+                    <td class="number" id="bin_pps_l2_wo_fcs_wo_padding"></td>
                   </tr>
                   <tr>
                     <td>L2 w/o FCS</td>
-                    <td id="pdu_l2_wo_fcs"></td>
-                    <td id="dec_pps_l2_wo_fcs"></td>
-                    <td id="bin_pps_l2_wo_fcs"></td>
+                    <td class="number" id="pdu_l2_wo_fcs"></td>
+                    <td class="number" id="dec_pps_l2_wo_fcs"></td>
+                    <td class="number" id="bin_pps_l2_wo_fcs"></td>
                   </tr>
                   <tr>
                     <td>L2 w/o FCS w VLAN</td>
-                    <td id="pdu_l2_wo_fcs_vlan"></td>
-                    <td id="dec_pps_l2_wo_fcs_vlan"></td>
-                    <td id="bin_pps_l2_wo_fcs_vlan"></td>
+                    <td class="number" id="pdu_l2_wo_fcs_vlan"></td>
+                    <td class="number" id="dec_pps_l2_wo_fcs_vlan"></td>
+                    <td class="number" id="bin_pps_l2_wo_fcs_vlan"></td>
                   </tr>
                   <tr>
                     <td>L2</td>
-                    <td id="pdu_l2"></td>
-                    <td id="dec_pps_l2"></td>
-                    <td id="bin_pps_l2"></td>
+                    <td class="number" id="pdu_l2"></td>
+                    <td class="number" id="dec_pps_l2"></td>
+                    <td class="number" id="bin_pps_l2"></td>
                   </tr>
                   <tr>
                     <td>L2 w/VLAN</td>
-                    <td id="pdu_l2_vlan"></td>
-                    <td id="dec_pps_l2_vlan"></td>
-                    <td id="bin_pps_l2_vlan"></td>
+                    <td class="number" id="pdu_l2_vlan"></td>
+                    <td class="number" id="dec_pps_l2_vlan"></td>
+                    <td class="number" id="bin_pps_l2_vlan"></td>
                   </tr>
                   <tr>
                     <td>L1</td>
-                    <td id="pdu_l1"></td>
-                    <td id="dec_pps_l1"></td>
-                    <td id="bin_pps_l1"></td>
+                    <td class="number" id="pdu_l1"></td>
+                    <td class="number" id="dec_pps_l1"></td>
+                    <td class="number" id="bin_pps_l1"></td>
                   </tr>
                   <tr>
                     <td>L1 w/VLAN</td>
-                    <td id="pdu_l1_vlan"></td>
-                    <td id="dec_pps_l1_vlan"></td>
-                    <td id="bin_pps_l1_vlan"></td>
+                    <td class="number" id="pdu_l1_vlan"></td>
+                    <td class="number" id="dec_pps_l1_vlan"></td>
+                    <td class="number" id="bin_pps_l1_vlan"></td>
                   </tr>
                 </tbody>
               </table>
