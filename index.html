@@ -149,7 +149,7 @@
         var link_speed = gbe * 1000 * 1000 * 1000;
         return {
           max: link_speed / bits(min_total_wo_vlan),
-          max_vlan: link_speed / bits(max_total_vlan),
+          max_vlan: link_speed / bits(min_total_vlan),
           min: link_speed / bits(max_total_wo_vlan),
           min_vlan: link_speed / bits(max_total_vlan)
         };
